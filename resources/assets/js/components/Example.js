@@ -4,10 +4,12 @@ import ReactDOM from 'react-dom'
 import axios from 'axios'
 import DatePicker from 'react-datepicker'
 import moment from 'moment'
+
 // import 'react-datepicker/dist/react-datepicker.css';
 
 import Table from './Table'
 import Chart from './Chart'
+import FormControl from './FormControl'
 
 export default class Example extends Component {
    constructor(props) {
@@ -21,8 +23,7 @@ export default class Example extends Component {
               start: moment(),
               end: moment()
           },
-          showErrors: false,
-          validationErrors: {},
+          errors: {},
           data : []
         }
 
@@ -31,6 +32,7 @@ export default class Example extends Component {
       this.endDateHandleChange = this.endDateHandleChange.bind(this)
       this.displayTableData = this.displayTableData.bind(this)
       this.onSubmitHandler = this.onSubmitHandler.bind(this)
+      this.validationHandler = this.validationHandler.bind(this)
 
     }
 
@@ -39,12 +41,6 @@ export default class Example extends Component {
       let resData = [...this.state.data]
       var self = this;
       self.setState({ isLoading : true })
-      let params = {
-        symbol: symbol,
-        start: start,
-        end: end,
-        email : email
-      }
 
       axios.get('/api/print',{
         params: {
@@ -55,7 +51,7 @@ export default class Example extends Component {
         }
         }).then(function (response) {
           resData = response.data;
-          console.log(response)
+
           self.setState({ data : resData, isLoading : false })
         })
         .catch(function (error) {
@@ -95,44 +91,91 @@ export default class Example extends Component {
     }
 
     //simple validation
-    validation(){
-      let error = {}
-      let isError
-      var self = this
-      if(this.state.company.symbol.length < 2){
-        error.symbolMessage = "Symbol must be more 2 characters"
-      }
-      if(this.state.company.email.length < 1){
-        error.emailMessage = "Email is Required"
+    // async await
+    async validationHandler(){
+
+      let fields = {...this.state.company}
+      let errors = {};
+      let formIsValid = true;
+
+
+
+			//Symbol
+      if(!fields.symbol || fields.symbol.length < 2){
+          formIsValid = false;
+          errors.symbol = "Check Symbol";
       }
 
-      if(this.state.company.symbol.length > 2){
-        axios.get('/api/validate',{
-          params: {
-            symbol: this.state.company.symbol
-          }
-          }).then(function (response) {
-              if(!response.data){
-                error.symbolMessage = "Symbol doesnt exist"
+      if(typeof fields.symbol !== "undefined"){
+      	if(!fields.symbol.match(/^[a-zA-Z]+$/)){
+          formIsValid = false;
+          errors.symbol = "Only letters";
+
+        }
+
+        if(fields.symbol.length > 2){
+          const self = this
+          this.setState({ isLoading : true })
+          await axios.get('/api/validate',{
+              params: {
+                symbol : fields.symbol
               }
-            //
-          })
-          .catch(function (error) {
-            console.log(error);
-          });
+              }).then(function (response) {
+
+                  if(response.status === 204){
+                    formIsValid = false
+                    errors.symbol = "Symbol doesnt exist"
+                    self.setState({ isLoading : false })
+                  }
+                //
+
+              })
+              .catch(function (error) {
+                console.log(error);
+              });
+
+
+        }
       }
 
-      if(this.state.company.email.length > 2){
+
+      //Email
+      if(!fields.email){
+          formIsValid = false;
+          errors.email = "Cannot be empty";
 
       }
+
+      if(typeof fields.email !== "undefined"){
+      	let lastAtPos = fields.email.lastIndexOf('@');
+      	let lastDotPos = fields.email.lastIndexOf('.');
+
+      	if (!(lastAtPos < lastDotPos && lastAtPos > 0 && fields.email.indexOf('@@') == -1 && lastDotPos > 2 && (fields.email.length - lastDotPos) > 2)) {
+            formIsValid = false;
+            errors.email = "Email is not valid";
+
+        }
+      }
+
+      this.setState({errors: errors});
+
+      return formIsValid;
     }
+
 
     onSubmitHandler(e){
       e.preventDefault()
-
+      const self = this
       const { email, start, end, symbol} = this.state.company
+      this.validationHandler().then(function(resp){
 
-      this.displayTableData(symbol, start.format("MMM D Y"), end.format("MMM D Y"), email)
+        if(resp)
+          self.displayTableData(symbol, start.format("MMM D Y"), end.format("MMM D Y"), email)
+
+      }).catch(function(err){
+        console.log(err)
+      })
+
     }
 
 
@@ -141,82 +184,29 @@ export default class Example extends Component {
       let showTable, showChart, loading
 
       if(this.state.isLoading){
-        loading = <div>Loading...</div>
+        loading = <div className="loading">Loading...</div>
       }
+
       if(this.state.data.length > 1){
         showTable = <Table data={this.state.data} />
         showChart = <Chart data={this.state.data} />
       }
         return (
-            <div className="container">
+            <div className="container-fluid">
               {loading}
               <div className="row">
                 <div className="col-xs-12 col-sm-3">
-                  <div className="form-group">
-                    <label>Company Symbol</label>
-                    <input name="symbol"
-                      value={symbol}
-                      onChange={this.changeHandler}
-                      placeholder="company symbol"
-                      className="form-control" />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Email</label>
-                    <input name="email"
-                      type="email"
-                      value={email}
-                      onChange={this.changeHandler}
-                      placeholder="email@email.com"
-                      className="form-control" />
-                  </div>
-
-
-
-                  <div className="form-row">
-
-                    <div className="col pb-3">
-                      <label>Start Date</label>
-                        <DatePicker
-                          selected={start}
-                          selectsStart
-                          startDate={start}
-                          endDate={end}
-                          dateFormat="YYYY-MM-DD"
-                          peekNextMonth
-                          showMonthDropdown
-                          showYearDropdown
-                          className="form-control"
-                          onChange={this.startDateHandleChange}
-                      />
-
-                    </div>
-
-                    <div className="col pb-3">
-                      <label>End Date</label>
-                        <DatePicker
-                            selected={end}
-                            selectsEnd
-                            startDate={start}
-                            endDate={end}
-                            dateFormat="YYYY-MM-DD"
-                            peekNextMonth
-                            showMonthDropdown
-                            showYearDropdown
-                            className="form-control"
-                            onChange={this.endDateHandleChange}
-                        />
-                    </div>
-                  </div>
-
-                    <button
-                      className="btn btn-block btn-primary btn-lg" onClick={this.onSubmitHandler}
-                       >
-                      Submit
-                    </button>
+                  <FormControl
+                    company={this.state.company}
+                    changeHandler={this.changeHandler}
+                    startDateHandleChange ={this.startDateHandleChange}
+                    endDateHandleChange = {this.endDateHandleChange}
+                    onSubmitHandler={this.onSubmitHandler}
+                    errors={this.state.errors}/>
                 </div>
                 <div className="col-xs-12 col-sm-9">
-                  {showChart}
+                      {showChart}
+
                   <div className="scrollable">
                       {showTable}
                   </div>

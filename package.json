@@ -26,7 +26,7 @@
         "moment": "^2.21.0",
         "react-chartjs": "^1.2.0",
         "react-datepicker": "^1.2.2",
-        "react-validation": "^3.0.7",
+        "react-validate-form": "^1.0.6",
         "recharts": "^1.0.0-beta.10"
     }
 }

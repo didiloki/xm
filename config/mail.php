@@ -29,7 +29,7 @@ return [
     |
     */
 
-    'host' => env('MAIL_HOST', 'smtp.mailgun.org'),
+    'host' => env('MAIL_HOST', 'smtp.mailgun.io'),
 
     /*
     |--------------------------------------------------------------------------
@@ -42,7 +42,7 @@ return [
     |
     */
 
-    'port' => env('MAIL_PORT', 587),
+    'port' => env('MAIL_PORT', 2525),
 
     /*
     |--------------------------------------------------------------------------
@@ -84,9 +84,9 @@ return [
     |
     */
 
-    'username' => env('MAIL_USERNAME', '38e0344684e4bd'),
+    'username' => env('MAIL_USERNAME', 'cd901e27986fc3'),
 
-    'password' => env('MAIL_PASSWORD','f0edff2599f6d3'),
+    'password' => env('MAIL_PASSWORD','	02d22b28be0c8a'),
 
     /*
     |--------------------------------------------------------------------------
